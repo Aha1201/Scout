@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+
+# 候选人数据库 / 导出 / 日志（可再生，且含抓取数据，不入库）
+scout.db
+roles/*/scout.db
+scout_report.html
+scout_export.csv
+roles/*/scout_report.html
+roles/*/scout_export.csv
+*.log
+
+# 保留岗位的 rubric.txt（核心资产），上面只忽略各岗位的数据库和报告
