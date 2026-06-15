@@ -5,7 +5,14 @@ UTA、保证金、SPAN/VaR 风控、撮合清结算这类是交易所的闭源�
 几乎不会公开展示这段经历。所以"看不到交易所经历"≠"没有"——不要因此一棍子打死。
 GitHub 在这个岗位的作用是：先筛出"资深 Java 高并发后端"的功底，金融/交易经历留待 LinkedIn / 面聊确认。
 
-评分维度：
+⛔ 硬性语言门槛（先判这条，不满足直接 0-40 跳过，无论其他多强）：
+本岗位要求"精通 Java"。判断候选人的主力语言：
+- GitHub 候选人看 top_repos 的语言分布——若主力明显是 Go / Python / Rust / C++ / JavaScript / TypeScript / Ruby / PHP
+  等非 JVM 语言，且看不到实质的 Java 产出（Java 仓库/Java 为主的项目）→ 判跳过（≤40）。
+- JVM 系（Java / Kotlin / Scala）为主力才算对口。Kotlin/Scala 资深且有 Java 能力可放行。
+- 加密圈很多 Go/Python 多语言选手会因贡献过 Java 交易所仓库被混进来——这类必须按主力语言卡掉。
+
+评分维度（通过语言门槛后再按下面打分）：
 1) 资深 Java 后端功底（第一硬通货）：Java 为主力语言，有体量的后端/中间件/高并发/分布式项目；
    能看出对 JVM、多线程并发、网络编程的深度；用过 Spring Boot / MyBatis / MySQL / Redis / Kafka / RocketMQ
    的痕迹。8 年+ 资深感（项目厚度、维护年限、复杂度）= 加分。

@@ -95,8 +95,39 @@ def _candidate_brief(cand):
     return json.dumps(brief, ensure_ascii=False, indent=2)
 
 
+def _primary_language(signals):
+    """GitHub 候选人 top_repos 里出现最多的语言。"""
+    from collections import Counter
+    repos = signals.get("top_repos") or []
+    c = Counter(r.get("lang") for r in repos if r.get("lang"))
+    return c.most_common(1)[0][0] if c else None
+
+
+def _language_gate(profile, cand, result):
+    """代码层硬门槛（不靠模型自觉）：GitHub 候选人主力语言若不在岗位要求语言里，封顶 40 分。
+    只在画像声明了 github.languages 时生效；linkedin 候选人不适用（无 top_repos）。"""
+    if cand.get("source") != "github":
+        return result
+    accepted = [l.lower() for l in ((profile.get("github") or {}).get("languages") or [])]
+    if not accepted:
+        return result
+    signals = cand.get("signals")
+    if isinstance(signals, str):
+        signals = json.loads(signals or "{}")
+    primary = _primary_language(signals or {})
+    if primary and primary.lower() not in accepted and (result.get("score") or 0) > 40:
+        result = dict(result)
+        result["score"] = 40
+        result["verdict"] = "跳过"
+        rf = list(result.get("red_flags") or [])
+        rf.insert(0, "主力语言 %s 非岗位要求语言，硬门槛判跳过" % primary)
+        result["red_flags"] = rf
+    return result
+
+
 def score_candidate(profile, cand):
     model = os.environ.get("RERANK_MODEL", "deepseek-chat")
     system = ACTIVE_RUBRIC + "\n\n本次招聘画像：\n" + json.dumps(profile, ensure_ascii=False)
     user = "候选人资料：\n" + _candidate_brief(cand)
-    return structured(model, system, user, SCORE_SCHEMA, max_tokens=1500)
+    result = structured(model, system, user, SCORE_SCHEMA, max_tokens=1500)
+    return _language_gate(profile, cand, result)

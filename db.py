@@ -85,11 +85,12 @@ def save_score(cand_id, result):
     conn.close()
 
 
-def all_scored():
-    """所有已精排的候选人，按分数降序——用于导出。"""
+def all_scored(min_score=0):
+    """已精排且 >= min_score 的候选人，按分数降序——用于导出/报告。"""
     conn = connect()
     rows = conn.execute(
-        "SELECT * FROM candidates WHERE score IS NOT NULL ORDER BY score DESC"
+        "SELECT * FROM candidates WHERE score IS NOT NULL AND score >= ? ORDER BY score DESC",
+        (min_score,),
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]

@@ -20,6 +20,7 @@ load_dotenv()
 import db
 import report
 import rerank
+import companies
 from profile import jd_to_profile
 from recall_github import recall
 from rerank import score_candidate
@@ -28,7 +29,7 @@ ROLES_DIR = os.path.join(os.path.dirname(__file__), "roles")
 
 
 def _apply_role(slug, args):
-    """切换到某个岗位：独立 DB、独立 RUBRIC、导出落到岗位目录。"""
+    """切换到某个岗位：独立 DB、独立 RUBRIC、导出落到岗位目录。返回岗位目录。"""
     base = os.path.join(ROLES_DIR, slug)
     if not os.path.exists(base):
         os.makedirs(base)
@@ -48,10 +49,11 @@ def _apply_role(slug, args):
         args.export = os.path.join(base, os.path.basename(args.export))
     if args.html:
         args.html = os.path.join(base, os.path.basename(args.html))
+    return base
 
 
-def _export_csv(path):
-    rows = db.all_scored()
+def _export_csv(path, min_score=0):
+    rows = db.all_scored(min_score=min_score)
     cols = ["score", "verdict", "source_id", "name", "followers", "location",
             "html_url", "evidence", "red_flags", "outreach_hook", "status"]
     # utf-8-sig 让 Excel 正确显示中文
@@ -70,16 +72,16 @@ def _export_csv(path):
     print("已导出 %d 人到 %s（用 Excel / Numbers 打开）" % (len(rows), path))
 
 
-def _export_html(path, open_browser=True):
-    n = report.export_html(path)
+def _export_html(path, min_score=0, open_browser=True):
+    n = report.export_html(path, min_score=min_score)
     abspath = os.path.abspath(path)
-    print("已生成网页报告（%d 人）：%s" % (n, abspath))
+    print("已生成网页报告（%d 人，仅显示 >=%d 分）：%s" % (n, min_score, abspath))
     if open_browser:
         webbrowser.open("file://" + abspath)
 
 
-def _print_top(limit):
-    rows = db.top_candidates(limit=limit)
+def _print_top(limit, min_score=0):
+    rows = db.top_candidates(limit=limit, min_score=min_score)
     if not rows:
         print("（还没有已精排的候选人）")
         return
@@ -109,23 +111,43 @@ def main():
     ap.add_argument("--role", help="岗位名（独立 DB + 独立 RUBRIC，放在 roles/<名>/）")
     ap.add_argument("--source", choices=["github", "linkedin", "both"], default="github",
                     help="召回源：github（默认）/ linkedin（需 CORESIGNAL_API_KEY）/ both")
+    ap.add_argument("--min-score", type=int, default=50,
+                    help="列表/报告只显示 >= 该分数的候选人（默认 50；设 0 显示全部）")
+    ap.add_argument("--expand-companies", action="store_true",
+                    help="只衍生/预览目标公司列表（不跑召回），存到 roles/<岗位>/companies.txt")
     args = ap.parse_args()
 
-    if args.role:
-        _apply_role(args.role, args)
+    role_dir = _apply_role(args.role, args) if args.role else None
+
+    # 只生成目标公司列表然后退出
+    if args.expand_companies:
+        jd = open(args.jd_file, encoding="utf-8").read() if args.jd_file else args.jd
+        if not jd:
+            print("需要提供 JD 才能衍生目标公司"); sys.exit(1)
+        prof = jd_to_profile(jd)
+        seeds = (prof.get("linkedin") or {}).get("companies") or []
+        # 强制重新生成：先删旧文件
+        if role_dir:
+            p = os.path.join(role_dir, "companies.txt")
+            if os.path.exists(p):
+                os.remove(p)
+        comps = companies.resolve(role_dir, seeds, prof.get("role", ""))
+        print("\n种子公司：%s" % ", ".join(seeds))
+        print("衍生出 %d 家目标公司：\n  %s" % (len(comps), "、".join(comps)))
+        return
 
     db.init()
 
     if args.list:
-        _print_top(args.top)
+        _print_top(args.top, min_score=args.min_score)
         return
 
     # 纯查看模式：没给 JD / rerank 时，只导出/开网页，不跑漏斗
     if (args.export or args.html) and not (args.jd or args.jd_file or args.rerank_only):
         if args.export:
-            _export_csv(args.export)
+            _export_csv(args.export, min_score=args.min_score)
         if args.html:
-            _export_html(args.html)
+            _export_html(args.html, min_score=args.min_score)
         return
 
     # --- 拿 JD ---
@@ -151,6 +173,9 @@ def main():
             sources.append(("GitHub", recall))
         if args.source in ("linkedin", "both"):
             from recall_linkedin import recall as recall_li
+            # 用衍生出的全套同类目标公司放大召回宽度
+            seeds = (profile.get("linkedin") or {}).get("companies") or []
+            profile["linkedin"]["companies"] = companies.resolve(role_dir, seeds, profile.get("role", ""))
             sources.append(("LinkedIn", recall_li))
 
         for label, fn in sources:
@@ -177,12 +202,12 @@ def main():
         except Exception as e:
             print("  [%d/%d] %s 精排失败: %s" % (i, len(unscored), cand["source_id"], e))
 
-    _print_top(args.top)
+    _print_top(args.top, min_score=args.min_score)
 
     if args.export:
-        _export_csv(args.export)
+        _export_csv(args.export, min_score=args.min_score)
     if args.html:
-        _export_html(args.html)
+        _export_html(args.html, min_score=args.min_score)
 
 
 if __name__ == "__main__":

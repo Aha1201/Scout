@@ -1,0 +1,51 @@
+# 目标公司列表（LinkedIn 召回用）。一行一个，可手动增删；删掉本文件会重新自动生成。
+IBKR
+Futu
+Tiger Brokers
+Binance
+OKX
+Bybit
+MEXC
+Coinbase
+Kraken
+Gate.io
+KuCoin
+Bitget
+HTX
+Crypto.com
+Deribit
+Robinhood
+Webull
+eToro
+Saxo Bank
+BitMEX
+Bitfinex
+Gemini
+Bitstamp
+Kraken Futures
+Bittrex
+Swissquote
+TradeStation
+TD Ameritrade
+Charles Schwab
+E*TRADE
+Firstrade
+SoFi Invest
+Revolut
+N26
+Wise
+Moomoo
+DriveWealth
+Alpaca
+Liquid
+BitFlyer
+Independent Reserve
+CoinJar
+CoinSpot
+Coinsquare
+bitbank
+Bithumb
+Upbit
+Korbit
+Coinone
+ZebPay

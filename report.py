@@ -93,8 +93,8 @@ render();
 </html>"""
 
 
-def export_html(path):
-    rows = db.all_scored()
+def export_html(path, min_score=0):
+    rows = db.all_scored(min_score=min_score)
     data = [{
         "score": r.get("score"),
         "verdict": r.get("verdict"),

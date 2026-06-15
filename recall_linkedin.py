@@ -7,6 +7,7 @@
 字段映射已对照 CoreSignal 真实返回 schema 校准（2026-06）。
 """
 import os
+import time
 
 import requests
 
@@ -33,14 +34,18 @@ def _company_q(comp):
 
 
 def _company_dsl(li):
-    """第一段（最高价值）：在目标公司（交易所/券商）干过 + 像工程师的人。"""
-    companies = _or(li.get("companies"), 12)
+    """第一段（最高价值）：在目标公司（交易所/券商）干过 + 有 Java/后端信号的人。
+    注意：标题用 'Engineer/Developer' 太宽（会捞进 Sales/Solutions/Support Engineer、运营、数据、前端），
+    必须收紧到 Java/后端，否则命中里一堆非对口工程师，精排全拒、白花 credit。"""
+    companies = _or(li.get("companies"), 60)  # 用衍生出的全套同类公司，放大召回宽度
     if not companies:
         return None
     return {"query": {"bool": {"must": [
         _company_q(companies),
-        {"query_string": {"query": "Java OR Backend OR Engineer OR Developer OR 工程师 OR 研发",
-                          "fields": ["active_experience_title", "headline", "inferred_skills"]}},
+        {"query_string": {
+            "query": "Java OR Spring OR backend OR 后端 OR 服务端",
+            "fields": ["active_experience_title", "headline", "inferred_skills",
+                       "active_experience_description"]}},
     ]}}}
 
 
@@ -68,12 +73,24 @@ def _domain_dsl(li):
 
 
 def _search(body):
-    r = requests.post(BASE + SEARCH_PATH, headers=_headers(), json=body, timeout=30)
-    r.raise_for_status()
-    ids = r.json()
-    if isinstance(ids, dict):
-        ids = ids.get("data") or ids.get("hits") or []
-    return ids if isinstance(ids, list) else []
+    last = None
+    for attempt in range(4):  # 503/网络抖动退避重试
+        try:
+            r = requests.post(BASE + SEARCH_PATH, headers=_headers(), json=body, timeout=30)
+        except requests.exceptions.RequestException as e:
+            last = e
+            time.sleep(2 * (attempt + 1))
+            continue
+        if r.status_code in (502, 503, 504, 429):
+            last = requests.HTTPError("%s on search" % r.status_code)
+            time.sleep(2 * (attempt + 1))
+            continue
+        r.raise_for_status()
+        ids = r.json()
+        if isinstance(ids, dict):
+            ids = ids.get("data") or ids.get("hits") or []
+        return ids if isinstance(ids, list) else []
+    raise last if last else RuntimeError("search 失败")
 
 
 def _active_company(exp):
@@ -139,6 +156,9 @@ def recall(profile, max_candidates=60):
     for eid in ordered[:max_candidates]:
         try:
             cr = requests.get(BASE + (COLLECT_PATH % eid), headers=_headers(), timeout=30)
+            if cr.status_code == 402:  # credit 用完，干净停止而不是静默产出空记录
+                print("  ⚠ CoreSignal credit 已用完（402），停止召回。请充值后再跑。")
+                return
             cr.raise_for_status()
             rec = cr.json()
         except requests.exceptions.RequestException as e:
