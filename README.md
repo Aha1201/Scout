@@ -49,6 +49,18 @@ python run.py "..." --export
 python run.py --export results.csv
 ```
 
+## 手动源（猎聘 / 脉脉 / BOSS直聘）
+
+这些平台没有可编程 API、且实名强反爬（别爬虫，有法律风险），但对国内岗位的池子比 LinkedIn 好。
+用法：在它们 UI 里人工搜 → 把看中的人复制到一个 .txt（多人之间用一行 `---` 分隔，格式随意，LLM 会解析）→
+
+```bash
+python run.py --role uta-java --paste candidates.txt --html
+```
+
+Scout 会把他们解析入库、走同一套 RUBRIC 精排、进同一份报告。这样不管人从哪个源来，
+Scout 都是统一的「评估 + 开场白 + 管理」层——找人那步手动，评估全自动。
+
 ## 结果在哪看
 
 - **网页报告**（`--html`，推荐）：自动在浏览器打开，可按分数排序、按结论筛选、搜索，开场白一键复制

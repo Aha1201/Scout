@@ -115,6 +115,8 @@ def main():
                     help="列表/报告只显示 >= 该分数的候选人（默认 50；设 0 显示全部）")
     ap.add_argument("--expand-companies", action="store_true",
                     help="只衍生/预览目标公司列表（不跑召回），存到 roles/<岗位>/companies.txt")
+    ap.add_argument("--paste", metavar="FILE",
+                    help="手动源：解析从猎聘/脉脉/BOSS复制粘贴到 FILE 的候选人文本，入库后精排")
     args = ap.parse_args()
 
     role_dir = _apply_role(args.role, args) if args.role else None
@@ -142,24 +144,34 @@ def main():
         _print_top(args.top, min_score=args.min_score)
         return
 
-    # 纯查看模式：没给 JD / rerank 时，只导出/开网页，不跑漏斗
-    if (args.export or args.html) and not (args.jd or args.jd_file or args.rerank_only):
+    # 纯查看模式：没给 JD / rerank / paste 时，只导出/开网页，不跑漏斗
+    if (args.export or args.html) and not (args.jd or args.jd_file or args.rerank_only or args.paste):
         if args.export:
             _export_csv(args.export, min_score=args.min_score)
         if args.html:
             _export_html(args.html, min_score=args.min_score)
         return
 
+    # --- 手动粘贴源（猎聘/脉脉/BOSS）：解析文件 -> 入库，然后照常走精排 ---
+    if args.paste:
+        import recall_manual
+        with open(args.paste, encoding="utf-8") as f:
+            text = f.read()
+        print("== 解析手动粘贴的候选人 ==")
+        cands = recall_manual.parse(text)
+        new = sum(db.upsert_candidate(c, query_tag=(args.role or "manual")) for c in cands)
+        print("解析出 %d 人，新增 %d 人（其余已在库）" % (len(cands), new))
+
     # --- 拿 JD ---
     jd = None
-    if not args.rerank_only:
+    if not args.rerank_only and not args.paste:
         if args.jd_file:
             with open(args.jd_file) as f:
                 jd = f.read()
         elif args.jd:
             jd = args.jd
         else:
-            print("需要提供 JD（位置参数或 --jd-file），或用 --rerank-only / --list")
+            print("需要提供 JD（位置参数或 --jd-file），或用 --rerank-only / --paste / --list")
             sys.exit(1)
 
     profile = None

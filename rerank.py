@@ -66,7 +66,7 @@ def _candidate_brief(cand):
     if isinstance(signals, str):
         signals = json.loads(signals or "{}")
     brief = {
-        "source": cand.get("source"),          # github / linkedin
+        "source": cand.get("source"),          # github / linkedin / manual
         "id": cand.get("source_id"),
         "name": cand.get("name"),
         "bio": cand.get("bio"),
@@ -75,11 +75,13 @@ def _candidate_brief(cand):
         "followers": cand.get("followers"),
         "url": cand.get("html_url"),
     }
-    if cand.get("source") == "linkedin":
-        # LinkedIn：履历 + 公司归属是关键证据
+    if cand.get("source") in ("linkedin", "manual"):
+        # LinkedIn / 手动粘贴（猎聘/脉脉/BOSS）：履历 + 公司归属 + 技能是关键证据
         brief.update({
             "current_title": signals.get("title"),
             "headline": signals.get("headline"),
+            "skills": signals.get("skills", []),
+            "years": signals.get("years"),
             "experience": signals.get("experience", []),
             "hit_target_companies": signals.get("hit_target_companies", []),
         })
