@@ -33,6 +33,7 @@ _TEMPLATE = """<!DOCTYPE html>
   .v-skip { color:#fff; background:var(--skip); }
   .who a { font-size:16px; font-weight:600; color:#1558d6; text-decoration:none; }
   .meta { color:#5f6368; font-size:13px; }
+  .src { font-size:11px; color:#5f6368; background:#eceff1; border-radius:4px; padding:1px 7px; text-transform:uppercase; }
   .sec { margin-top:10px; font-size:14px; line-height:1.55; }
   .sec b { color:#3c4043; font-weight:600; }
   .flags { color:#b3261e; }
@@ -72,8 +73,9 @@ function render(){
       <div class="row1">
         <span class="score">${r.score}</span>
         <span class="verdict ${vclass(r.verdict)}">${r.verdict}</span>
-        <span class="who"><a href="${r.html_url}" target="_blank">${esc(r.source_id)}</a></span>
-        <span class="meta">${esc(r.name||"")} · followers ${r.followers||0} · ${esc(r.location||"地点未知")}</span>
+        <span class="who"><a href="${r.html_url||('https://www.google.com/search?q='+encodeURIComponent((r.name||'')+' '+(r.company||'')))}" target="_blank" title="${r.html_url?'打开主页':'按 姓名+公司 搜索'}">${esc(r.name||r.source_id)}</a></span>
+        <span class="src">${esc(r.source||"")}</span>
+        <span class="meta">${[r.company,r.location||"地点未知",("followers "+(r.followers||0))].filter(Boolean).map(esc).join(" · ")}</span>
       </div>
       ${r.evidence.length?`<div class="sec"><b>证据：</b>${esc(r.evidence.join("；"))}</div>`:""}
       ${r.red_flags.length?`<div class="sec flags"><b>减分点：</b>${esc(r.red_flags.join("；"))}</div>`:""}
@@ -98,8 +100,10 @@ def export_html(path, min_score=0):
     data = [{
         "score": r.get("score"),
         "verdict": r.get("verdict"),
+        "source": r.get("source"),
         "source_id": r.get("source_id"),
         "name": r.get("name"),
+        "company": r.get("company"),
         "followers": r.get("followers"),
         "location": r.get("location"),
         "html_url": r.get("html_url"),
