@@ -115,6 +115,9 @@ def main():
                     help="列表/报告只显示 >= 该分数的候选人（默认 50；设 0 显示全部）")
     ap.add_argument("--expand-companies", action="store_true",
                     help="只衍生/预览目标公司列表（不跑召回），存到 roles/<岗位>/companies.txt")
+    ap.add_argument("--lang-gate", action="store_true",
+                    help="开启语言硬门槛：GitHub 候选人主力语言不在岗位语言里则封顶 40。"
+                         "仅适合'精通某语言'的岗（如 UTA 精通 Java）；架构师等重广度的岗别开。")
     ap.add_argument("--paste", metavar="FILE",
                     help="手动源：解析从猎聘/脉脉/BOSS复制粘贴到 FILE 的候选人文本，入库后精排")
     args = ap.parse_args()
@@ -207,7 +210,7 @@ def main():
     print("待精排 %d 人" % len(unscored))
     for i, cand in enumerate(unscored, 1):
         try:
-            result = score_candidate(profile, cand)
+            result = score_candidate(profile, cand, lang_gate=args.lang_gate)
             db.save_score(cand["id"], result)
             print("  [%d/%d] %s -> %d (%s)" % (i, len(unscored), cand["source_id"],
                                                result["score"], result["verdict"]))

@@ -11,13 +11,16 @@ EXPAND_SCHEMA = {
     "required": ["companies"],
 }
 
-SYSTEM = """你是金融科技招聘的行业专家。给定几个种子公司和岗位领域，列出市场上**同类的目标公司**，
+SYSTEM = """你是资深招聘行业专家。给定岗位领域和（可能为空的）几个种子公司，列出市场上**该岗位候选人最可能任职的目标公司**，
 用于在 LinkedIn 上按履历扩大搜索宽度。要求：
-- 覆盖同赛道：加密交易所、传统券商 / 期货 / 经纪商、衍生品与做市平台等，与种子公司同类。
-- 用 LinkedIn 上出现的英文公司名（如 OKX, Binance, Bybit, Coinbase, Kraken, Gate.io, KuCoin, Bitget,
-  Huobi/HTX, Crypto.com, Deribit；Futu, Tiger Brokers, Interactive Brokers, Robinhood, Webull, eToro, Saxo Bank...）。
-- 40-60 个，去重，按相关性排序，种子公司本身也包含进来。
-- 只列与岗位领域（交易所核心/统一账户/保证金/风控/衍生品/经纪）相关的公司，不要无关公司。
+- 根据岗位领域自行判断赛道，列出同类雇主。例如：
+  · 交易所核心 Java → 加密交易所 + 券商（OKX, Binance, Bybit, Coinbase, Futu, Tiger Brokers, IBKR...）
+  · 数字化 / 解决方案架构师（云）→ 系统集成商与咨询（Accenture, Thoughtworks, Capgemini, Deloitte, IBM, Cognizant）、
+    云厂商（Microsoft, Alibaba Cloud, AWS, Google Cloud）、企业软件（SAP, Oracle, Salesforce）等
+  · 其他岗位同理，按领域推导。
+- 用 LinkedIn 上出现的英文公司名（中国公司也用其英文名/常见写法）。
+- 40-60 个，去重，按相关性排序；若给了种子公司，也包含进来。
+- 只列与该岗位领域相关的雇主，不要无关公司。
 只输出 JSON。"""
 
 

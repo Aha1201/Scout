@@ -127,9 +127,11 @@ def _language_gate(profile, cand, result):
     return result
 
 
-def score_candidate(profile, cand):
+def score_candidate(profile, cand, lang_gate=False):
     model = os.environ.get("RERANK_MODEL", "deepseek-chat")
     system = ACTIVE_RUBRIC + "\n\n本次招聘画像：\n" + json.dumps(profile, ensure_ascii=False)
     user = "候选人资料：\n" + _candidate_brief(cand)
     result = structured(model, system, user, SCORE_SCHEMA, max_tokens=1500)
-    return _language_gate(profile, cand, result)
+    # 语言硬门槛按需开启：仅"精通某语言"类岗位（如 UTA 精通 Java）才用 --lang-gate；
+    # 架构师等重广度的岗不开，否则会误杀主力非该语言的好候选人。
+    return _language_gate(profile, cand, result) if lang_gate else result

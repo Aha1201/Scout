@@ -1,0 +1,54 @@
+# 目标公司列表（LinkedIn 召回用）。一行一个，可手动增删；删掉本文件会重新自动生成。
+Accenture
+Capgemini
+IBM
+Deloitte
+PwC
+KPMG
+McKinsey & Company
+Boston Consulting Group
+Bain & Company
+Cognizant
+Wipro
+Infosys
+Tata Consultancy Services
+HCLTech
+Tech Mahindra
+Amazon Web Services
+Microsoft
+Google Cloud
+Alibaba Cloud
+Oracle
+SAP
+Salesforce
+ServiceNow
+Adobe
+Cisco Systems
+VMware
+Red Hat
+Dell Technologies
+Hewlett Packard Enterprise
+Fujitsu
+NTT Data
+Atos
+BearingPoint
+CGI Inc.
+Hitachi Vantara
+DXC Technology
+Unisys
+Capita
+Sopra Steria
+Thoughtworks
+Globant
+EPAM Systems
+Endava
+GFT Technologies
+Cognizant
+T-Systems
+Siemens
+Bosch
+Schneider Electric
+Johnson Controls
+General Electric
+Honeywell
+Rockwell Automation
