@@ -13,3 +13,6 @@ roles/*/scout_export.csv
 *.log
 
 # 保留岗位的 rubric.txt（核心资产），上面只忽略各岗位的数据库和报告
+
+# rubric 备份（DAT 推送 rubric 时自动生成，可再生）
+*.bak
