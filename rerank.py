@@ -2,6 +2,7 @@
 把你脑子里"什么是好工程师"的标准固化成可批量跑的评分逻辑——这是传统关键词匹配做不到、别人也抄不走的部分。
 改 RUBRIC 就是在调你的招聘品味。"""
 import json
+import re
 import os
 
 from llm import structured
@@ -127,6 +128,37 @@ def _language_gate(profile, cand, result):
     return result
 
 
+# 机器账号硬门槛（代码层，不靠模型自觉）。
+# 2026-09-21 实测：istio-testing 这类"机器用户"在 GitHub 的 type 仍是 User，
+# 召回层的 type 过滤拦不住；模型自己在证据里写明了"实为官方自动化账号、非真人"，
+# 却照样给了 60 分——所以这一层必须由代码来判。
+_BOT_LOGIN_RE = re.compile(
+    r"(\[bot\]|(^|[-_.])(bot|ci|testing|automation|robot|jenkins|actions|deploy)([-_.]|$)"
+    r"|^(dependabot|renovate|github-actions|actions-user|web-flow)$)", re.I)
+_BOT_NAME_RE = re.compile(r"\b(bot|automation|automated|ci\s*bot)\b", re.I)
+
+
+def _bot_gate(cand, result):
+    """机器人/组织账号 → 判 0 分跳过。login 命中模式，或名字里明写 bot/automation。"""
+    login = (cand.get("source_id") or "")
+    name = (cand.get("name") or "")
+    if (cand.get("account_type") or "User") != "User":
+        hit = "%s 账号" % cand["account_type"]
+    elif _BOT_LOGIN_RE.search(login):
+        hit = "账号名 %s 符合机器账号命名" % login
+    elif _BOT_NAME_RE.search(name):
+        hit = "账号名称「%s」自称机器人/自动化" % name
+    else:
+        return result
+    result = dict(result)
+    result["score"] = 0
+    result["verdict"] = "跳过"
+    rf = list(result.get("red_flags") or [])
+    rf.insert(0, "非真人候选人：%s，硬门槛判 0 分" % hit)
+    result["red_flags"] = rf
+    return result
+
+
 def score_candidate(profile, cand, lang_gate=False):
     model = os.environ.get("RERANK_MODEL", "deepseek-chat")
     system = ACTIVE_RUBRIC + "\n\n本次招聘画像：\n" + json.dumps(profile, ensure_ascii=False)
@@ -134,4 +166,5 @@ def score_candidate(profile, cand, lang_gate=False):
     result = structured(model, system, user, SCORE_SCHEMA, max_tokens=1500)
     # 语言硬门槛按需开启：仅"精通某语言"类岗位（如 UTA 精通 Java）才用 --lang-gate；
     # 架构师等重广度的岗不开，否则会误杀主力非该语言的好候选人。
+    result = _bot_gate(cand, result)   # 机器账号永远过滤，不随 lang_gate 开关
     return _language_gate(profile, cand, result) if lang_gate else result

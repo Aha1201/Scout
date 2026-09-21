@@ -157,6 +157,13 @@ def recall(profile, max_candidates=60, repos_per_query=20, contributors_per_repo
             except requests.exceptions.RequestException as e:
                 print("  ! 跳过 %s（拉取失败：%s）" % (login, e))
                 continue
+            # GitHub 的 type 分 User / Organization / Bot——组织号和机器人不是候选人。
+            # 在这里跳过而不是等精排再判，是因为精排每个人都要花 LLM 的钱。
+            acct_type = user.get("type") or "User"
+            if acct_type != "User":
+                print("  ! 跳过 %s（%s 账号，非真人）" % (login, acct_type))
+                continue
+
             followers = user.get("followers") or 0
             if followers < min_followers:
                 continue
@@ -171,6 +178,7 @@ def recall(profile, max_candidates=60, repos_per_query=20, contributors_per_repo
             yield {
                 "source": "github",
                 "source_id": login,
+                "account_type": acct_type,
                 "name": user.get("name"),
                 "email": user.get("email"),
                 "location": user.get("location"),
